@@ -1,0 +1,63 @@
+
+flowchart TB
+    USER["Users / Clients"]
+    LB["AWS Load Balancer"]
+    ING["Kubernetes Ingress Controller"]
+    FE["React Frontend"]
+    GW["API Gateway"]
+
+    USER --> LB --> ING --> FE
+    FE --> GW
+
+    subgraph APP["APPLICATION LAYER - KUBERNETES"]
+        GW --> US["User Service - Flask"]
+        GW --> PS["Product Service - Flask"]
+        GW --> OS["Order Service - Flask"]
+
+        US --> UDB[("User PostgreSQL")]
+        PS --> PDB[("Product PostgreSQL")]
+        OS --> ODB[("Order PostgreSQL")]
+    end
+
+    subgraph OBS["OBSERVABILITY STACK"]
+        ALLOY["Grafana Alloy"]
+        PROM["Prometheus - Metrics"]
+        LOKI["Loki - Logs"]
+        TEMPO["Tempo - Traces"]
+        GRAF["Grafana - Dashboards"]
+
+        ALLOY --> LOKI
+        ALLOY --> TEMPO
+        ALLOY -. Optional remote write .-> PROM
+
+        PROM --> GRAF
+        LOKI --> GRAF
+        TEMPO --> GRAF
+    end
+
+    APP -. Metrics scraping .-> PROM
+    APP -. Logs and traces .-> ALLOY
+
+    subgraph CICD["CI/CD AND DEVSECOPS"]
+        GH["GitHub"]
+        PIPE["GitHub Actions / Jenkins"]
+        TEST["Automated Tests"]
+        SEC["Trivy + Gitleaks"]
+        ECR["Amazon ECR"]
+
+        GH --> PIPE --> TEST --> SEC --> ECR
+    end
+
+    ECR --> APP
+
+    subgraph INFRA["INFRASTRUCTURE AUTOMATION"]
+        TF["Terraform"]
+        AN["Ansible"]
+        AWS["AWS Infrastructure"]
+
+        TF --> AWS
+        AN --> AWS
+    end
+
+    AWS --> APP
+    AWS --> LB
